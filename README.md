@@ -20,7 +20,7 @@ React 18 + Vite, TradingView `lightweight-charts`, Express 4, MongoDB (Mongoose)
 ## 🌐 Live Web App
 
 Access the hosted application directly in your browser without needing to clone or run commands:
-👉 **[Launch TradeX Web Terminal](https://github.com/VCodes-py/tradex#deployment-render---free-all-in-one)**
+👉 **[Launch TradeX Web Terminal](https://github.com/VCodes-py/tradex)**
 
 * **1-Click Demo:** Click **⚡ Launch 1-Click Demo** on the landing page for instant access.
 * **Demo account:** `demo@tradex.app` / `demo-pass-123`
@@ -93,30 +93,6 @@ All routes except `/api/health` and `/api/auth/register|login` need `Authorizati
 | `GET/POST /api/holdings`, `POST /api/holdings/:id/sell`, `PUT/DELETE /api/holdings/:id` | Manage positions |
 | `GET /api/market/search?q=`, `/quotes?symbols=`, `/history?symbol=&range=`, `/ticker` | Market data |
 | `GET /api/health` | Which providers are enabled |
-
-## Deployment (Render - Free All-In-One)
-
-Deploy the entire app (frontend and backend) to **Render** with a single click or Blueprint:
-
-1. **Database (MongoDB Atlas - Free):**
-   - Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas).
-   - Under *Database Access*, create a user.
-   - Under *Network Access*, add `0.0.0.0/0` (allow access from anywhere).
-   - Copy your connection string (`mongodb+srv://...`).
-
-2. **Deploy on Render:**
-   - Go to [render.com](https://render.com) and click **New + > Web Service** (or **Blueprint** with the included `render.yaml`).
-   - Connect your GitHub repository `VCodes-py/tradex`.
-   - Set:
-     - **Build Command:** `npm run install:all && npm run build`
-     - **Start Command:** `npm start`
-     - **Plan:** Free
-   - Add Environment Variables:
-     - `NODE_ENV`: `production`
-     - `NODE_VERSION`: `22`
-     - `JWT_SECRET`: *(Generate a 32-character random string or click Generate)*
-     - `MONGODB_URI`: *(Your MongoDB Atlas connection string)*
-   - Click **Deploy Web Service**!
 
 ## Tests
 
