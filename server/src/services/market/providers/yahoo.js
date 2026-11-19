@@ -59,7 +59,10 @@ export async function history(symbol, { days, interval }) {
 
 /** Direct FX rate, e.g. fxRate('USD','INR'). */
 export async function fxRate(from, to) {
+  if (from === to) return 1;
   const [q] = await quotes([`${from}${to}=X`]);
-  if (!q) throw new Error('No FX quote');
-  return q.price;
+  if (q?.price) return q.price;
+  const [inv] = await quotes([`${to}${from}=X`]);
+  if (inv?.price) return 1 / inv.price;
+  throw new Error('No FX quote');
 }

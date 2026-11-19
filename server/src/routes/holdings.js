@@ -38,11 +38,10 @@ router.post(
   asyncHandler(async (req, res) => {
     const { quantity, price } = req.body;
     let sym = req.body.symbol.trim().toUpperCase();
-    const isIndian = sym.endsWith('.NS') || sym.endsWith('.BO') || req.body.assetClass === 'indian_stock';
 
     let quote = (await getQuotes([sym]))[sym];
-    // If not found and user entered an Indian stock name/ticker without suffix, try .NS
-    if (!quote && isIndian && !sym.includes('.')) {
+    // If not found and user entered a stock name/ticker without suffix, try .NS
+    if (!quote && !sym.includes('.')) {
       const nseSym = `${sym}.NS`;
       const nseQuote = (await getQuotes([nseSym]))[nseSym];
       if (nseQuote) {
@@ -50,6 +49,8 @@ router.post(
         sym = nseSym;
       }
     }
+
+    const isIndian = sym.endsWith('.NS') || sym.endsWith('.BO') || req.body.assetClass === 'indian_stock' || quote?.assetClass === 'indian_stock';
 
     const existing = await Holding.findOne({ user: req.userId, symbol: sym });
     if (existing) {

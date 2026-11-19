@@ -19,10 +19,17 @@ function previousBusinessDay(isoDate) {
 
 export async function fxRate(from, to) {
   if (from === to) return 1;
-  const data = await getJson(`${BASE}/latest?base=${from}&symbols=${to}`);
-  const rate = data?.rates?.[to];
-  if (!rate) throw new Error(`No ${from}/${to} rate`);
-  return rate;
+  try {
+    const data = await getJson(`${BASE}/latest?base=${from}&symbols=${to}`);
+    const rate = data?.rates?.[to];
+    if (rate) return rate;
+  } catch {
+    /* fallback to inverted */
+  }
+  const invData = await getJson(`${BASE}/latest?base=${to}&symbols=${from}`).catch(() => null);
+  const invRate = invData?.rates?.[from];
+  if (invRate) return 1 / invRate;
+  throw new Error(`No ${from}/${to} rate`);
 }
 
 /** Forex pair quotes from Yahoo-style symbols like EURUSD=X. */

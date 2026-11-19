@@ -55,3 +55,43 @@ test('empty portfolio does not divide by zero', () => {
   assert.equal(s.totals.pnlPct, 0);
   assert.deepEqual(s.allocation, []);
 });
+
+test('values portfolio in INR converting USD assets seamlessly', () => {
+  const inrRates = { USD: 83.5, INR: 1 };
+  const s = computeSummary({ holdings, quotes, rates: inrRates, baseCurrency: 'INR' });
+  const aapl = s.positions.find((p) => p.symbol === 'AAPL');
+  const rel = s.positions.find((p) => p.symbol === 'RELIANCE.NS');
+
+  // AAPL in USD should convert at 83.5 INR per USD
+  assert.equal(aapl.baseCurrency, 'INR');
+  assert.equal(aapl.fxRate, 83.5);
+  assert.equal(aapl.basePrice, 150 * 83.5);
+  assert.equal(aapl.baseAvgCost, 100 * 83.5);
+  assert.equal(aapl.value, 10 * 150 * 83.5);
+  assert.equal(aapl.pnl, (150 - 100) * 10 * 83.5);
+
+  // RELIANCE.NS in INR remains 1:1
+  assert.equal(rel.baseCurrency, 'INR');
+  assert.equal(rel.fxRate, 1);
+  assert.equal(rel.basePrice, 1200);
+  assert.equal(rel.baseAvgCost, 1000);
+  assert.equal(rel.value, 100 * 1200);
+  assert.equal(rel.pnl, 100 * 200);
+
+  // Totals in INR
+  assert.equal(s.totals.value, 10 * 150 * 83.5 + 100 * 1200);
+  assert.equal(s.totals.cost, 10 * 100 * 83.5 + 100 * 1000);
+});
+
+test('values portfolio in EUR converting both USD and INR assets', () => {
+  const eurRates = { USD: 0.92, INR: 0.011, EUR: 1 };
+  const s = computeSummary({ holdings, quotes, rates: eurRates, baseCurrency: 'EUR' });
+  const aapl = s.positions.find((p) => p.symbol === 'AAPL');
+  const rel = s.positions.find((p) => p.symbol === 'RELIANCE.NS');
+
+  assert.equal(aapl.baseCurrency, 'EUR');
+  assert.equal(aapl.basePrice, 150 * 0.92);
+  assert.equal(rel.baseCurrency, 'EUR');
+  assert.equal(rel.basePrice, 1200 * 0.011);
+  assert.equal(s.totals.value, 10 * 150 * 0.92 + 100 * 1200 * 0.011);
+});
