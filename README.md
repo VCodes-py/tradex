@@ -78,14 +78,29 @@ All routes except `/api/health` and `/api/auth/register|login` need `Authorizati
 | `GET /api/market/search?q=`, `/quotes?symbols=`, `/history?symbol=&range=`, `/ticker` | Market data |
 | `GET /api/health` | Which providers are enabled |
 
-## Production
+## Deployment (Render - Free All-In-One)
 
-```bash
-npm run build                # outputs client/dist
-NODE_ENV=production JWT_SECRET=... MONGODB_URI=... npm start
-```
+Deploy the entire app (frontend and backend) to **Render** with a single click or Blueprint:
 
-Serve `client/dist` from any static host or reverse proxy and forward `/api` to the server. Set `CLIENT_ORIGIN` to your site's origin. The server refuses to start in production without `JWT_SECRET`.
+1. **Database (MongoDB Atlas - Free):**
+   - Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas).
+   - Under *Database Access*, create a user.
+   - Under *Network Access*, add `0.0.0.0/0` (allow access from anywhere).
+   - Copy your connection string (`mongodb+srv://...`).
+
+2. **Deploy on Render:**
+   - Go to [render.com](https://render.com) and click **New + > Web Service** (or **Blueprint** with the included `render.yaml`).
+   - Connect your GitHub repository `VCodes-py/tradex`.
+   - Set:
+     - **Build Command:** `npm run install:all && npm run build`
+     - **Start Command:** `npm start`
+     - **Plan:** Free
+   - Add Environment Variables:
+     - `NODE_ENV`: `production`
+     - `NODE_VERSION`: `22`
+     - `JWT_SECRET`: *(Generate a 32-character random string or click Generate)*
+     - `MONGODB_URI`: *(Your MongoDB Atlas connection string)*
+   - Click **Deploy Web Service**!
 
 ## Tests
 
