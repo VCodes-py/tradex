@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { User } from '../models/User.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { asyncHandler, validate, HttpError } from '../middleware/http.js';
+import { ensureDemoUser, DEMO_EMAIL, DEMO_PASSWORD } from '../seed.js';
 
 const router = Router();
 
@@ -41,7 +42,11 @@ router.post(
   validate(credentials),
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    if (!user && email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      await ensureDemoUser();
+      user = await User.findOne({ email });
+    }
     const ok = user && (await bcrypt.compare(password, user.passwordHash));
     if (!ok) throw new HttpError(401, 'Email or password is incorrect.');
     res.json({ token: signToken(user._id), user: publicUser(user) });

@@ -17,9 +17,19 @@ One portfolio workstation for **Indian stocks, US & international stocks, crypto
 
 React 18 + Vite, TradingView `lightweight-charts`, Express 4, MongoDB (Mongoose), JWT auth.
 
-## Quick start
+## 🌐 Live Web App
 
-Requirements: Node 22+ and MongoDB (local, or an Atlas connection string).
+Access the hosted application directly in your browser without needing to clone or run commands:
+👉 **[Launch TradeX Web Terminal](https://github.com/VCodes-py/tradex#deployment-render---free-all-in-one)**
+
+* **1-Click Demo:** Click **⚡ Launch 1-Click Demo** on the landing page for instant access.
+* **Demo account:** `demo@tradex.app` / `demo-pass-123`
+
+---
+
+## Local Development (Optional for Developers)
+
+Only needed if you want to contribute, edit the code, or run the app locally on your machine:
 
 ```bash
 git clone https://github.com/VCodes-py/tradex.git tradex && cd tradex
