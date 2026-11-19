@@ -23,10 +23,65 @@ function toQuote(q) {
   };
 }
 
+async function quoteFromChart(sym) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const meta = data.chart?.result?.[0]?.meta;
+    if (!meta || meta.regularMarketPrice == null) return null;
+    const { price, currency } = normalizeCurrency(meta.regularMarketPrice, meta.currency);
+    const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? meta.regularMarketPrice;
+    const scale = price / meta.regularMarketPrice;
+    const change = (meta.regularMarketPrice - prevClose) * scale;
+    const changePct = prevClose ? ((meta.regularMarketPrice - prevClose) / prevClose) * 100 : 0;
+    return {
+      symbol: meta.symbol || sym,
+      name: meta.shortName || meta.longName || sym,
+      price,
+      change,
+      changePct,
+      prevClose: prevClose * scale,
+      currency,
+      exchange: meta.fullExchangeName || meta.exchangeName || '',
+      assetClass: classify({
+        symbol: meta.symbol || sym,
+        quoteType: meta.instrumentType,
+        exchange: meta.exchangeName,
+        fullExchangeName: meta.fullExchangeName,
+        currency,
+      }),
+      marketState: meta.currentTradingPeriod?.regular ? 'REGULAR' : 'CLOSED',
+      asOf: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function quotes(symbols) {
-  const raw = await yf.quote(symbols, {}, { validateResult: false });
-  const list = Array.isArray(raw) ? raw : [raw];
-  return list.map(toQuote).filter(Boolean);
+  let list = [];
+  try {
+    const raw = await yf.quote(symbols, {}, { validateResult: false });
+    const arr = Array.isArray(raw) ? raw : [raw];
+    list = arr.map(toQuote).filter(Boolean);
+  } catch (err) {
+    // yf.quote may fail on cloud hosts due to crumb checks; we fall back below
+  }
+
+  const foundSymbols = new Set(list.map((q) => q.symbol.toUpperCase()));
+  const missing = symbols.filter((s) => !foundSymbols.has(s.toUpperCase()));
+  if (missing.length > 0) {
+    const chartQuotes = await Promise.all(missing.map(quoteFromChart));
+    list.push(...chartQuotes.filter(Boolean));
+  }
+  return list;
 }
 
 export async function search(query) {

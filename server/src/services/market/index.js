@@ -67,9 +67,29 @@ export async function getQuotes(symbols) {
         const sym = q.symbol.toUpperCase();
         quoteStore.set(sym, { quote: q, fetchedAt: Date.now() });
         out[sym] = q;
+        if (sym.endsWith('.NS') || sym.endsWith('.BO')) {
+          const bare = sym.replace(/\.(NS|BO)$/, '');
+          out[bare] = q;
+          quoteStore.set(bare, { quote: q, fetchedAt: Date.now() });
+        }
       }
     })
   );
+
+  // For any bare stock symbol that still has no quote, try appending .NS
+  const unresolvedBare = stale.filter((s) => !out[s] && !s.includes('.') && !isCryptoSymbol(s) && !isForexSymbol(s));
+  if (unresolvedBare.length > 0) {
+    const nseSymbols = unresolvedBare.map((s) => `${s}.NS`);
+    const nseRows = await fetchWithFallback(CHAINS.stock, nseSymbols);
+    for (const q of nseRows) {
+      const sym = q.symbol.toUpperCase();
+      quoteStore.set(sym, { quote: q, fetchedAt: Date.now() });
+      out[sym] = q;
+      const bare = sym.replace(/\.(NS|BO)$/, '');
+      out[bare] = q;
+      quoteStore.set(bare, { quote: q, fetchedAt: Date.now() });
+    }
+  }
 
   // If every provider failed for a symbol, serve the last known quote (flagged) instead of nothing.
   for (const s of stale) {

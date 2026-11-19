@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
-import { money, price as fmtPrice, qty as fmtQty } from '../format.js';
+import { money, price as fmtPrice, qty as fmtQty, signed } from '../format.js';
 import SymbolSearch from './SymbolSearch.jsx';
 
 /**
@@ -30,9 +30,12 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
   useEffect(() => {
     if (!asset) return;
     api.quotes([asset.symbol], baseCurrency).then((q) => {
-      const hit = q[asset.symbol.toUpperCase()];
+      const symUpper = asset.symbol.toUpperCase();
+      const hit = q[symUpper] || q[`${symUpper}.NS`] || (symUpper.includes('.') ? q[symUpper.replace(/\.(NS|BO)$/, '')] : null);
       setQuote(hit || null);
-      if (mode === 'buy' && hit) setUnit(String(Number(hit.price.toPrecision(8))));
+      if (mode === 'buy' && hit?.price != null) {
+        setUnit(String(Number(hit.price.toPrecision(8))));
+      }
     }).catch(() => setQuote(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset?.symbol, baseCurrency]);
@@ -41,7 +44,10 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
     setError('');
     if (mode === 'edit' && position) { setQuantity(String(position.quantity)); setUnit(String(position.avgCost)); }
     if (mode === 'sell') { setQuantity(''); }
-    if (mode === 'buy') { setQuantity(''); if (quote) setUnit(String(Number(quote.price.toPrecision(8)))); }
+    if (mode === 'buy') {
+      setQuantity('');
+      if (quote?.price != null) setUnit(String(Number(quote.price.toPrecision(8))));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -49,7 +55,15 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
   const isIndian = sym.endsWith('.NS') || sym.endsWith('.BO') || asset?.assetClass === 'indian_stock';
   const currency = position?.currency || quote?.currency || (isIndian ? 'INR' : 'USD');
   const q = Number(quantity); const p = Number(unit);
-  const total = q > 0 && p > 0 ? q * p : null;
+  const m = quote?.price ?? null;
+
+  // Comparison between user entered price (cost) and current market price
+  const hasPriceComparison = mode !== 'sell' && p > 0 && m != null && m > 0;
+  const isLoss = hasPriceComparison && p > m;
+  const isProfit = hasPriceComparison && p < m;
+  const isEven = hasPriceComparison && Math.abs(p - m) < 0.000001;
+  const priceDiff = hasPriceComparison ? Math.abs(p - m) : 0;
+  const priceDiffPct = hasPriceComparison ? (priceDiff / m) * 100 : 0;
 
   async function submit(e) {
     e.preventDefault();
@@ -123,38 +137,121 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
               <span>Quantity</span>
               <input type="number" inputMode="decimal" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} autoFocus />
             </label>
+
             {mode !== 'sell' && (
-              <label className="field">
-                <span>{mode === 'edit' ? 'Average cost' : 'Price per unit'} ({currency})</span>
-                <input type="number" inputMode="decimal" min="0" step="any" value={unit} onChange={(e) => setUnit(e.target.value)} />
-              </label>
-            )}
-            {total != null && mode !== 'sell' && (
-              <div className="total">
-                <span className="muted">Total</span>
-                <div>
-                  <span className="num">{money(total, currency)}</span>
-                  {quote?.fxRate && currency !== baseCurrency && (
-                    <span className="muted small" style={{ marginLeft: 8 }}>
-                      (≈ {money(total * quote.fxRate, baseCurrency)})
-                    </span>
-                  )}
-                </div>
+              <div style={{ marginBottom: 12 }}>
+                <label className="field" style={{ marginBottom: 4 }}>
+                  <span>{mode === 'edit' ? 'Average cost' : 'Price per unit'} ({currency})</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder={m ? String(m) : '0.00'}
+                  />
+                </label>
+
+                {/* Dynamic red/green indicator bar and variance vs current market price */}
+                {hasPriceComparison && (
+                  <div className="price-diff-wrap">
+                    <div className={`price-diff-bar ${isLoss ? 'loss' : isProfit ? 'profit' : 'even'}`} />
+                    <div className={`price-diff-text ${isLoss ? 'loss' : isProfit ? 'profit' : 'even'}`}>
+                      {isLoss && (
+                        <span>
+                          🔻 <strong>Position in Loss:</strong> +{fmtPrice(priceDiff, currency)} (+{priceDiffPct.toFixed(2)}%) above current market ({fmtPrice(m, currency)})
+                        </span>
+                      )}
+                      {isProfit && (
+                        <span>
+                          🟢 <strong>Position in Profit:</strong> −{fmtPrice(priceDiff, currency)} (−{priceDiffPct.toFixed(2)}%) below current market ({fmtPrice(m, currency)})
+                        </span>
+                      )}
+                      {isEven && (
+                        <span>
+                          ⚖️ Matches current market price ({fmtPrice(m, currency)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Position Valuation & Profit/Loss Tracking */}
+            {q > 0 && p > 0 && mode !== 'sell' && (
+              <div className="trade-calc-card">
+                <div className="calc-row">
+                  <span className="muted">Total Cost Basis ({q} × {fmtPrice(p, currency)})</span>
+                  <span className="num">{money(q * p, currency)}</span>
+                </div>
+                {m != null && m > 0 && (
+                  <>
+                    <div className="calc-row">
+                      <span className="muted">Current Market Value ({q} × {fmtPrice(m, currency)})</span>
+                      <span className="num">{money(q * m, currency)}</span>
+                    </div>
+                    <div className="calc-row pnl-row">
+                      <span className="muted">Expected Profit / Loss</span>
+                      <div className="pnl-val">
+                        <span className={`num ${q * (m - p) >= 0 ? 'up' : 'down'}`}>
+                          {signed(q * (m - p), currency)}
+                          <span className="pnl-pct">
+                            ({q * (m - p) >= 0 ? '+' : ''}{(((m - p) / p) * 100).toFixed(2)}%)
+                          </span>
+                        </span>
+                        <span className={`pnl-tag ${q * (m - p) >= 0 ? 'tag-profit' : 'tag-loss'}`}>
+                          {q * (m - p) >= 0 ? 'PROFIT' : 'LOSS'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {quote?.fxRate && currency !== baseCurrency && (
+                  <div className="calc-row fx-row">
+                    <span className="muted small">Converted in {baseCurrency}</span>
+                    <span className="muted small num">
+                      Cost: {money(q * p * quote.fxRate, baseCurrency)} · Value: {money(q * (m || p) * quote.fxRate, baseCurrency)}
+                      {m > 0 && (
+                        <span className={`small ${q * (m - p) >= 0 ? 'up' : 'down'}`} style={{ marginLeft: 6 }}>
+                          ({signed(q * (m - p) * quote.fxRate, baseCurrency)})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {mode === 'sell' && q > 0 && quote && (
-              <div className="total">
-                <span className="muted">At market</span>
-                <div>
+              <div className="trade-calc-card">
+                <div className="calc-row">
+                  <span className="muted">Sale proceeds (at market)</span>
                   <span className="num">{money(q * quote.price, currency)}</span>
-                  {quote.fxRate && currency !== baseCurrency && (
-                    <span className="muted small" style={{ marginLeft: 8 }}>
-                      (≈ {money(q * quote.price * quote.fxRate, baseCurrency)})
-                    </span>
-                  )}
                 </div>
+                {position?.avgCost && (
+                  <div className="calc-row pnl-row">
+                    <span className="muted">Realized P&amp;L on sale</span>
+                    <div className="pnl-val">
+                      <span className={`num ${q * (quote.price - position.avgCost) >= 0 ? 'up' : 'down'}`}>
+                        {signed(q * (quote.price - position.avgCost), currency)}
+                      </span>
+                      <span className={`pnl-tag ${q * (quote.price - position.avgCost) >= 0 ? 'tag-profit' : 'tag-loss'}`}>
+                        {q * (quote.price - position.avgCost) >= 0 ? 'PROFIT' : 'LOSS'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {quote.fxRate && currency !== baseCurrency && (
+                  <div className="calc-row fx-row">
+                    <span className="muted small">Proceeds in {baseCurrency}</span>
+                    <span className="muted small num">{money(q * quote.price * quote.fxRate, baseCurrency)}</span>
+                  </div>
+                )}
               </div>
             )}
+
             {error && <div className="error" role="alert">{error}</div>}
           </div>
         )}
