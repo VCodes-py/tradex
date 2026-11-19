@@ -35,7 +35,6 @@ export default function LandingPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
 
   // Calculate dynamic mockup values based on selected currency
   const calculatedPositions = useMemo(() => {
@@ -97,12 +96,6 @@ export default function LandingPage() {
     setForm({ name: 'Demo User', email: DEMO_CREDENTIALS.email, password: DEMO_CREDENTIALS.password });
   }
 
-  function copyCli() {
-    navigator.clipboard.writeText('git clone https://github.com/tradex/tradex && cd tradex && npm run dev');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  }
-
   const formatCurrency = (val, cur) => {
     const symbolMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£' };
     const prefix = symbolMap[cur] || cur + ' ';
@@ -133,6 +126,7 @@ export default function LandingPage() {
             <a href="#interactive-terminal">Terminal</a>
             <a href="#features">Architecture</a>
             <a href="#markets">Coverage</a>
+            <a href="https://github.com/VCodes-py/tradex" target="_blank" rel="noreferrer">GitHub</a>
           </nav>
 
           <div className="landing-nav-actions">
@@ -203,12 +197,6 @@ export default function LandingPage() {
                 </button>
               </>
             )}
-
-            <div className="landing-cli-badge" onClick={copyCli} title="Click to copy quickstart command">
-              <span className="cli-prompt">$</span>
-              <code>npm run dev</code>
-              <span className="cli-copy">{copied ? '✓ Copied' : 'Copy'}</span>
-            </div>
           </div>
 
           {/* Quick Metrics Bar */}
@@ -558,7 +546,8 @@ export default function LandingPage() {
             <Logo height={16} />
             <p className="small muted">A dense, quiet trading terminal for multi-asset global wealth.</p>
           </div>
-          <div className="footer-links">
+          <div className="footer-links" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <a href="https://github.com/VCodes-py/tradex" target="_blank" rel="noreferrer" className="small link">GitHub Repository</a>
             <span className="small muted">Node 24 · Express 4 · React 18 · MongoDB · MIT License</span>
           </div>
         </div>

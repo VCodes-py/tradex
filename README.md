@@ -1,10 +1,16 @@
 # TradeX
 
-One portfolio for **US stocks, international stocks, crypto and forex**, valued live in the currency you choose.
+One portfolio workstation for **Indian stocks, US & international stocks, crypto and forex**, valued live in the currency you choose.
+
+[![GitHub Repo](https://img.shields.io/badge/GitHub-VCodes--py%2Ftradex-blue?logo=github)](https://github.com/VCodes-py/tradex)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 - **Unified valuation.** Every holding is priced in its own currency, then converted to your base currency (USD, INR, EUR and more, changeable any time from the top bar).
+- **Dedicated Indian stocks.** Native classification for NSE & BSE (`.NS`, `.BO`), Nifty 50, and automatic INR valuation.
+- **Unified international section.** US tech and global equities brought together into one streamlined international workspace.
 - **Free live prices.** Yahoo Finance by default, with official free APIs as automatic fallback. No paid keys needed to run.
-- **Trading-terminal UI.** Ticker tape, dense positions table, candlestick and line charts, allocation by asset class.
+- **Trading-terminal UI.** Interactive clickable ticker tape, dense positions table, TradingView charts, and asset class allocation bar.
+- **Aesthetic landing page.** Sleek terminal preview with live dynamic base currency converter and 1-click instant demo.
 - **Buy, sell and correct** positions. Buys re-average your cost; selling everything removes the position.
 
 ## Stack
@@ -16,7 +22,7 @@ React 18 + Vite, TradingView `lightweight-charts`, Express 4, MongoDB (Mongoose)
 Requirements: Node 22+ and MongoDB (local, or an Atlas connection string).
 
 ```bash
-git clone <your-repo-url> tradex && cd tradex
+git clone https://github.com/VCodes-py/tradex.git tradex && cd tradex
 npm run install:all
 cp server/.env.example server/.env      # then set JWT_SECRET
 npm run seed                            # optional: demo@tradex.app / demo-pass-123
