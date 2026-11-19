@@ -2,6 +2,7 @@
 
 One portfolio workstation for **Indian stocks, US & international stocks, crypto and forex**, valued live in the currency you choose.
 
+[![Live App](https://img.shields.io/badge/Live-TradeX%20Web%20Terminal-emerald?style=flat&logo=render)](https://tradex-u981.onrender.com/)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-VCodes--py%2Ftradex-blue?logo=github)](https://github.com/VCodes-py/tradex)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -20,7 +21,7 @@ React 18 + Vite, TradingView `lightweight-charts`, Express 4, MongoDB (Mongoose)
 ## 🌐 Live Web App
 
 Access the hosted application directly in your browser without needing to clone or run commands:
-👉 **[Launch TradeX Web Terminal](https://github.com/VCodes-py/tradex)**
+👉 **[TradeX](https://tradex-u981.onrender.com/)**
 
 * **1-Click Demo:** Click **⚡ Launch 1-Click Demo** on the landing page for instant access.
 * **Demo account:** `demo@tradex.app` / `demo-pass-123`
