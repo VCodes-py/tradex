@@ -27,9 +27,29 @@ export default function PositionsTable({ positions, baseCurrency, selected, onSe
                 </div>
               </td>
               <td className="r num">{qty(p.quantity)}</td>
-              <td className="r num">{price(p.avgCost, p.currency)}</td>
               <td className="r num">
-                {p.priced ? price(p.price, p.currency) : <span className="tag" title="No provider returned a price or exchange rate for this asset.">No price</span>}
+                {p.currency !== baseCurrency && p.baseAvgCost ? (
+                  <>
+                    <span>{price(p.baseAvgCost, baseCurrency)}</span>
+                    <span className="muted small block">{price(p.avgCost, p.currency)}</span>
+                  </>
+                ) : (
+                  price(p.avgCost, p.currency)
+                )}
+              </td>
+              <td className="r num">
+                {p.priced ? (
+                  p.currency !== baseCurrency && p.basePrice ? (
+                    <>
+                      <span>{price(p.basePrice, baseCurrency)}</span>
+                      <span className="muted small block">{price(p.price, p.currency)}</span>
+                    </>
+                  ) : (
+                    price(p.price, p.currency)
+                  )
+                ) : (
+                  <span className="tag" title="No provider returned a price or exchange rate for this asset.">No price</span>
+                )}
                 {p.stale && <span className="tag" title="Live providers are unreachable. Showing the last known price.">Stale</span>}
               </td>
               <td className={`r num ${tone(p.changePct)}`}>{pct(p.changePct)}</td>

@@ -13,15 +13,17 @@ router.get('/summary', asyncHandler(async (req, res) => {
   const user = await User.findById(req.userId);
   if (!user) throw new HttpError(401, 'Account not found. Sign in again.');
   const holdings = await Holding.find({ user: req.userId }).lean();
+  const baseCurrency = String(req.query.base || user.baseCurrency || 'USD').trim().toUpperCase();
 
+  const currencies = [...new Set(holdings.map((h) => h.currency))];
   const [quotes, rates] = await Promise.all([
     getQuotes(holdings.map((h) => h.symbol)),
-    getFxRates(holdings.map((h) => h.currency), user.baseCurrency),
+    getFxRates(currencies, baseCurrency),
   ]);
 
-  const summary = computeSummary({ holdings, quotes, rates, baseCurrency: user.baseCurrency });
+  const summary = computeSummary({ holdings, quotes, rates, baseCurrency });
   const sources = [...new Set(summary.positions.map((p) => p.source).filter(Boolean))];
-  res.json({ ...summary, sources, asOf: new Date().toISOString() });
+  res.json({ ...summary, rates, sources, asOf: new Date().toISOString() });
 }));
 
 export default router;

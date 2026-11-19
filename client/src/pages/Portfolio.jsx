@@ -13,7 +13,7 @@ const FILTERS = ['all', 'indian_stock', 'intl_stock', 'crypto', 'forex'];
 export default function Portfolio() {
   const { user } = useAuth();
   const base = user.baseCurrency;
-  const { data, error, loading, updatedAt, refresh } = usePolling(api.summary, 30_000, [base]);
+  const { data, error, loading, updatedAt, refresh } = usePolling(() => api.summary(base), 30_000, [base]);
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [dialog, setDialog] = useState(null); // { position? }

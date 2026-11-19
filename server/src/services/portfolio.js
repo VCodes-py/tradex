@@ -17,6 +17,8 @@ export function computeSummary({ holdings, quotes, rates, baseCurrency }) {
       name: h.name || q?.name || h.symbol,
       assetClass,
       currency: h.currency,
+      baseCurrency,
+      fxRate: Number.isFinite(fx) ? fx : null,
       exchange: h.exchange,
       quantity: h.quantity,
       avgCost: h.avgCost,
@@ -26,13 +28,27 @@ export function computeSummary({ holdings, quotes, rates, baseCurrency }) {
       source: q?.source ?? null,
       priced,
     };
-    if (!priced) return { ...base, value: null, cost: null, pnl: null, pnlPct: null, dayChange: null, weight: null };
+    if (!priced) {
+      return {
+        ...base,
+        basePrice: null,
+        baseAvgCost: null,
+        value: null,
+        cost: null,
+        pnl: null,
+        pnlPct: null,
+        dayChange: null,
+        weight: null,
+      };
+    }
 
     const value = h.quantity * q.price * fx;
     const cost = h.quantity * h.avgCost * fx;
     const pnl = value - cost;
     return {
       ...base,
+      basePrice: q.price * fx,
+      baseAvgCost: h.avgCost * fx,
       value,
       cost,
       pnl,

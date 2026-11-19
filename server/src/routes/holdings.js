@@ -37,9 +37,21 @@ router.post(
   })),
   asyncHandler(async (req, res) => {
     const { quantity, price } = req.body;
-    const sym = req.body.symbol;
-    const existing = await Holding.findOne({ user: req.userId, symbol: sym });
+    let sym = req.body.symbol.trim().toUpperCase();
+    const isIndian = sym.endsWith('.NS') || sym.endsWith('.BO') || req.body.assetClass === 'indian_stock';
 
+    let quote = (await getQuotes([sym]))[sym];
+    // If not found and user entered an Indian stock name/ticker without suffix, try .NS
+    if (!quote && isIndian && !sym.includes('.')) {
+      const nseSym = `${sym}.NS`;
+      const nseQuote = (await getQuotes([nseSym]))[nseSym];
+      if (nseQuote) {
+        quote = nseQuote;
+        sym = nseSym;
+      }
+    }
+
+    const existing = await Holding.findOne({ user: req.userId, symbol: sym });
     if (existing) {
       const total = existing.quantity + quantity;
       existing.avgCost = (existing.quantity * existing.avgCost + quantity * price) / total;
@@ -48,15 +60,19 @@ router.post(
       return res.json(existing);
     }
 
-    const quote = (await getQuotes([sym]))[sym];
-    const assetClass = quote?.assetClass ?? req.body.assetClass;
-    const currency = quote?.currency ?? req.body.currency;
-    if (!assetClass || !currency) {
-      throw new HttpError(422, `We couldn't find "${sym}". Check the symbol, e.g. AAPL, RELIANCE.NS, BTC-USD or EURUSD=X.`);
-    }
+    const assetClass = quote?.assetClass ?? req.body.assetClass ?? (isIndian ? 'indian_stock' : 'intl_stock');
+    const currency = quote?.currency ?? req.body.currency ?? (isIndian ? 'INR' : 'USD');
+    const exchange = quote?.exchange ?? (isIndian ? (sym.endsWith('.BO') ? 'BSE' : 'NSE') : '');
+
     const holding = await Holding.create({
-      user: req.userId, symbol: sym, name: quote?.name ?? req.body.name ?? sym,
-      assetClass, currency, exchange: quote?.exchange ?? '', quantity, avgCost: price,
+      user: req.userId,
+      symbol: sym,
+      name: quote?.name ?? req.body.name ?? sym,
+      assetClass,
+      currency,
+      exchange,
+      quantity,
+      avgCost: price,
     });
     res.status(201).json(holding);
   })

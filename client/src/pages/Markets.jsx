@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { useLocalList, usePolling } from '../hooks.js';
 import { CLASS_LABEL, pct, price, tone } from '../format.js';
 import PriceChart from '../components/PriceChart.jsx';
@@ -9,7 +10,7 @@ import TradeDialog from '../components/TradeDialog.jsx';
 
 const LISTS = {
   watchlist: null,
-  indian_stock: ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'TATAMOTORS.NS', 'ICICIBANK.NS'],
+  indian_stock: ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS', 'BHARTIARTL.NS', 'SBIN.NS'],
   intl_stock: ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'ASML', '7203.T', 'SAP.DE', 'HSBA.L'],
   crypto: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'DOGE-USD', 'BNB-USD'],
   forex: ['EURUSD=X', 'GBPUSD=X', 'USDINR=X', 'USDJPY=X', 'AUDUSD=X', 'USDCHF=X'],
@@ -17,6 +18,8 @@ const LISTS = {
 const TABS = ['watchlist', 'indian_stock', 'intl_stock', 'crypto', 'forex'];
 
 export default function Markets() {
+  const { user } = useAuth();
+  const baseCurrency = user?.baseCurrency || 'USD';
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolParam = searchParams.get('symbol');
 
@@ -58,7 +61,7 @@ export default function Markets() {
     return [...new Set([...list, active.symbol])];
   }, [tab, watch, active.symbol]);
 
-  const { data: quotes, error } = usePolling(() => (symbols.length ? api.quotes(symbols) : {}), 30_000, [symbols.join(',')]);
+  const { data: quotes, error } = usePolling(() => (symbols.length ? api.quotes(symbols, baseCurrency) : {}), 30_000, [symbols.join(','), baseCurrency]);
   const rows = (tab === 'watchlist' ? watch : LISTS[tab] || []).map((s) => quotes?.[s.toUpperCase()] || { symbol: s, missing: true });
   const current = quotes?.[active.symbol.toUpperCase()];
 
@@ -81,6 +84,11 @@ export default function Markets() {
             </div>
             <div className="quote-price">
               <div className="num big">{current ? price(current.price, current.currency) : '—'}</div>
+              {current && current.currency !== baseCurrency && current.basePrice && (
+                <div className="muted small num" title={`Converted at 1 ${current.currency} = ${current.fxRate?.toFixed(4)} ${baseCurrency}`}>
+                  ≈ {price(current.basePrice, baseCurrency)}
+                </div>
+              )}
               <div className={`num ${tone(current?.changePct)}`}>{current ? `${pct(current.changePct)}` : ''}</div>
             </div>
             <div className="quote-actions">
@@ -110,7 +118,12 @@ export default function Markets() {
               <li key={q.symbol}>
                 <button className={`quote-row ${q.symbol === active.symbol ? 'sel' : ''}`} onClick={() => pick({ symbol: q.symbol, name: q.name || q.symbol, assetClass: q.assetClass || (tab === 'watchlist' ? active.assetClass : tab) })}>
                   <span className="asset"><span className="sym">{q.symbol}</span><span className="muted small ellip">{q.name}</span></span>
-                  <span className="num r">{q.missing ? '—' : price(q.price, q.currency)}</span>
+                  <span className="num r">
+                    {q.missing ? '—' : price(q.price, q.currency)}
+                    {!q.missing && q.currency !== baseCurrency && q.basePrice && (
+                      <span className="muted small block">≈ {price(q.basePrice, baseCurrency)}</span>
+                    )}
+                  </span>
                   <span className={`num r ${tone(q.changePct)}`}>{q.missing ? '' : pct(q.changePct)}</span>
                 </button>
               </li>

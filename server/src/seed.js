@@ -27,6 +27,7 @@ export async function ensureDemoUser() {
         { symbol: 'AAPL', name: 'Apple Inc.', assetClass: 'intl_stock', currency: 'USD', exchange: 'NASDAQ', quantity: 25, avgCost: 168.4, user: user._id },
         { symbol: 'NVDA', name: 'NVIDIA Corporation', assetClass: 'intl_stock', currency: 'USD', exchange: 'NASDAQ', quantity: 12, avgCost: 112.2, user: user._id },
         { symbol: 'RELIANCE.NS', name: 'Reliance Industries', assetClass: 'indian_stock', currency: 'INR', exchange: 'NSE', quantity: 40, avgCost: 1285, user: user._id },
+        { symbol: 'TCS.NS', name: 'Tata Consultancy Services', assetClass: 'indian_stock', currency: 'INR', exchange: 'NSE', quantity: 15, avgCost: 2350, user: user._id },
         { symbol: 'ASML', name: 'ASML Holding', assetClass: 'intl_stock', currency: 'USD', exchange: 'NASDAQ', quantity: 4, avgCost: 710, user: user._id },
         { symbol: 'BTC-USD', name: 'Bitcoin', assetClass: 'crypto', currency: 'USD', exchange: 'Crypto', quantity: 0.35, avgCost: 61250, user: user._id },
         { symbol: 'ETH-USD', name: 'Ethereum', assetClass: 'crypto', currency: 'USD', exchange: 'Crypto', quantity: 4, avgCost: 2900, user: user._id },

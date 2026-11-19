@@ -20,8 +20,14 @@ test('values positions in the base currency using FX rates', () => {
   const rel = s.positions.find((p) => p.symbol === 'RELIANCE.NS');
   assert.equal(aapl.value, 1500);
   assert.equal(aapl.pnl, 500);
+  assert.equal(aapl.basePrice, 150);
+  assert.equal(aapl.baseAvgCost, 100);
+  assert.equal(aapl.fxRate, 1);
   assert.ok(Math.abs(rel.value - 100 * 1200 * 0.012) < 1e-9);
   assert.ok(Math.abs(rel.cost - 100 * 1000 * 0.012) < 1e-9);
+  assert.ok(Math.abs(rel.basePrice - 1200 * 0.012) < 1e-9);
+  assert.ok(Math.abs(rel.baseAvgCost - 1000 * 0.012) < 1e-9);
+  assert.equal(rel.fxRate, 0.012);
 });
 
 test('unpriced holdings are excluded from totals and counted', () => {

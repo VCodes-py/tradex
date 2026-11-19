@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { money, price as fmtPrice, qty as fmtQty } from '../format.js';
 import SymbolSearch from './SymbolSearch.jsx';
 
@@ -8,6 +9,8 @@ import SymbolSearch from './SymbolSearch.jsx';
  * picked:   a search result to pre-select when opened from Markets.
  */
 export default function TradeDialog({ position, picked, initialMode, onClose, onDone }) {
+  const { user } = useAuth();
+  const baseCurrency = user?.baseCurrency || 'USD';
   const [asset, setAsset] = useState(position || picked || null);
   const [mode, setMode] = useState(initialMode || 'buy');
   const [quantity, setQuantity] = useState('');
@@ -26,13 +29,13 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
   // Fetch a live price whenever the asset changes so the form starts from the market price.
   useEffect(() => {
     if (!asset) return;
-    api.quotes([asset.symbol]).then((q) => {
+    api.quotes([asset.symbol], baseCurrency).then((q) => {
       const hit = q[asset.symbol.toUpperCase()];
       setQuote(hit || null);
       if (mode === 'buy' && hit) setUnit(String(Number(hit.price.toPrecision(8))));
     }).catch(() => setQuote(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asset?.symbol]);
+  }, [asset?.symbol, baseCurrency]);
 
   useEffect(() => {
     setError('');
@@ -42,7 +45,9 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  const currency = position?.currency || quote?.currency || 'USD';
+  const sym = asset?.symbol || '';
+  const isIndian = sym.endsWith('.NS') || sym.endsWith('.BO') || asset?.assetClass === 'indian_stock';
+  const currency = position?.currency || quote?.currency || (isIndian ? 'INR' : 'USD');
   const q = Number(quantity); const p = Number(unit);
   const total = q > 0 && p > 0 ? q * p : null;
 
@@ -53,7 +58,16 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
     if (mode !== 'edit' && !(q > 0)) return setError('Enter a quantity greater than 0.');
     setBusy(true);
     try {
-      if (mode === 'buy') await api.buy({ symbol: asset.symbol, quantity: q, price: p, name: asset.name, assetClass: asset.assetClass, currency: quote?.currency });
+      if (mode === 'buy') {
+        await api.buy({
+          symbol: asset.symbol,
+          quantity: q,
+          price: p,
+          name: asset.name,
+          assetClass: asset.assetClass || (isIndian ? 'indian_stock' : 'intl_stock'),
+          currency,
+        });
+      }
       if (mode === 'sell') await api.sell(position.id, q);
       if (mode === 'edit') await api.edit(position.id, { quantity: q, avgCost: p });
       onDone();
@@ -80,13 +94,21 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
         {!asset ? (
           <div className="dialog-body">
             <SymbolSearch autoFocus onPick={setAsset} />
-            <p className="hint">Works with US and international stocks, crypto (BTC-USD) and forex pairs (EURUSD=X).</p>
+            <p className="hint">Works with Indian stocks (RELIANCE.NS, TCS.NS), US/global stocks, crypto and forex pairs.</p>
           </div>
         ) : (
           <div className="dialog-body">
             <div className="asset-line">
               <span>{asset.name}</span>
-              {quote && <span className="num">{fmtPrice(quote.price, quote.currency)}<span className="muted small"> last</span></span>}
+              {quote && (
+                <span className="num">
+                  {fmtPrice(quote.price, quote.currency)}
+                  {quote.basePrice && quote.currency !== baseCurrency && (
+                    <span className="muted small"> (≈ {fmtPrice(quote.basePrice, baseCurrency)})</span>
+                  )}
+                  <span className="muted small"> last</span>
+                </span>
+              )}
             </div>
 
             {held && <div className="seg wide" role="group" aria-label="Action">
@@ -107,8 +129,32 @@ export default function TradeDialog({ position, picked, initialMode, onClose, on
                 <input type="number" inputMode="decimal" min="0" step="any" value={unit} onChange={(e) => setUnit(e.target.value)} />
               </label>
             )}
-            {total != null && mode !== 'sell' && <div className="total"><span className="muted">Total</span><span className="num">{money(total, currency)}</span></div>}
-            {mode === 'sell' && q > 0 && quote && <div className="total"><span className="muted">At market</span><span className="num">{money(q * quote.price, currency)}</span></div>}
+            {total != null && mode !== 'sell' && (
+              <div className="total">
+                <span className="muted">Total</span>
+                <div>
+                  <span className="num">{money(total, currency)}</span>
+                  {quote?.fxRate && currency !== baseCurrency && (
+                    <span className="muted small" style={{ marginLeft: 8 }}>
+                      (≈ {money(total * quote.fxRate, baseCurrency)})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            {mode === 'sell' && q > 0 && quote && (
+              <div className="total">
+                <span className="muted">At market</span>
+                <div>
+                  <span className="num">{money(q * quote.price, currency)}</span>
+                  {quote.fxRate && currency !== baseCurrency && (
+                    <span className="muted small" style={{ marginLeft: 8 }}>
+                      (≈ {money(q * quote.price * quote.fxRate, baseCurrency)})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             {error && <div className="error" role="alert">{error}</div>}
           </div>
         )}
